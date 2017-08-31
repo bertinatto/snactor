@@ -1,4 +1,4 @@
-from snactor.executors.payload import PayloadExecutor, registered_executor
+from snactor.executors.payload import PayloadExecutor
 
 
 class PythonExecutorDefinition(PayloadExecutor.Definition):
@@ -7,9 +7,9 @@ class PythonExecutorDefinition(PayloadExecutor.Definition):
         self.executable = "/usr/bin/python"
 
 
-@registered_executor('python')
 class PythonExecutor(PayloadExecutor):
     Definition = PythonExecutorDefinition
+    name = 'python'
 
     def __init__(self, definition):
         super(PythonExecutor, self).__init__(definition)

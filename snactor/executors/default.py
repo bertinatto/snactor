@@ -1,3 +1,4 @@
+import abc
 import json
 import logging
 import os
@@ -7,7 +8,8 @@ import jsonschema
 
 from snactor.utils.variables import resolve_variable_spec
 from snactor.definition import Definition
-from snactor.registry import registered_executor, get_environment_extension, get_schema
+from snactor.registry.envs import get_environment_extension
+from snactor.registry.schemas import get_schema
 
 
 class ExecutorDefinition(object):
@@ -38,8 +40,10 @@ def filter_by_channel(channel_list, data):
     return result
 
 
-@registered_executor('default')
 class Executor(object):
+    __metaclass__ = abc.ABCMeta
+    name = 'default'
+
     Definition = ExecutorDefinition
 
     def __init__(self, definition):

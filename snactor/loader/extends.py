@@ -1,6 +1,6 @@
 from snactor.executors.default import filter_by_channel
 from snactor.definition import Definition
-from snactor.registry import must_get_actor
+from snactor.registry.actors import must_get_actor
 from snactor.utils.variables import resolve_variable_spec
 
 

@@ -1,4 +1,4 @@
-from snactor.executors.default import Executor, registered_executor
+from snactor.executors.default import Executor
 
 
 class AnsibleModuleExecutorDefinition(Executor.Definition):
@@ -10,9 +10,9 @@ class AnsibleModuleExecutorDefinition(Executor.Definition):
         self.target = init.get('output', '__drop')
 
 
-@registered_executor('ansible-module')
 class AnsibleModuleExecutor(Executor):
     Definition = AnsibleModuleExecutorDefinition
+    name = 'ansible-module'
 
     def handle_stdout(self, stdout, data):
         print("STDOUT: ", stdout)

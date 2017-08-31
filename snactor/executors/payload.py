@@ -1,7 +1,7 @@
 import tempfile
 import os.path
 
-from snactor.executors.default import Executor, registered_executor
+from snactor.executors.default import Executor
 
 
 class PayloadExecutorDefinition(Executor.Definition):
@@ -16,9 +16,9 @@ class PayloadExecutorDefinition(Executor.Definition):
         # TODO: warn about payload being unused when script-file defined
 
 
-@registered_executor('payload')
 class PayloadExecutor(Executor):
     Definition = PayloadExecutorDefinition
+    name = 'payload'
 
     def __init__(self, definition):
         super(PayloadExecutor, self).__init__(definition)

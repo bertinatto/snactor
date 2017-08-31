@@ -1,5 +1,5 @@
-from snactor.executors.default import Executor, registered_executor, filter_by_channel
-from snactor.registry import must_get_actor
+from snactor.executors.default import Executor, filter_by_channel
+from snactor.registry.actors import must_get_actor
 
 
 class GroupExecutorDefinition(Executor.Definition):
@@ -8,9 +8,9 @@ class GroupExecutorDefinition(Executor.Definition):
         self.actors = map(must_get_actor, init.get('actors', ()))
 
 
-@registered_executor('group')
 class GroupExecutor(Executor):
     Definition = GroupExecutorDefinition
+    name = 'group'
 
     def __init__(self, definition):
         super(GroupExecutor, self).__init__(definition)

@@ -1,4 +1,4 @@
-from snactor.registry import registered_output_processor
+from snactor.registry.output_processors import registered_output_processor
 from snactor.utils.variables import assign_to_variable_spec
 
 
