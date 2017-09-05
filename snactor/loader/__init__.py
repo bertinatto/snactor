@@ -12,78 +12,79 @@ from snactor.registry import register_actor, get_executor, get_actor, register_s
     get_schema
 
 
-def _load(name, definition, tags, post_resolve):
+def _load(actor_name, specs_file, tags, post_resolve):
     _log = logging.getLogger('snactor.loader')
-    with open(definition) as f:
-        _log.debug("Loading %s ...", definition)
-        d = yaml.load(f)
+    with open(specs_file) as f:
+        _log.debug("Loading %s ...", specs_file)
+        specs = yaml.load(f)
 
         if tags:
-            actor_tags = set(d.get('tags', ()))
+            actor_tags = set(specs.get('tags', ()))
             if not actor_tags or not actor_tags.intersection(tags):
-                _log.debug("Skipping %s due to missing selected tags", definition)
+                _log.debug("Skipping %s due to missing selected tags", specs_file)
                 return
 
-        if d.get('extends') and d.get('executor'):
-            raise ValueError("Conflicting extends and executor specification found in {}".format(name))
+        if specs.get('extends') and specs.get('executor'):
+            raise ValueError("Conflicting extends and executor specification found in {}".format(actor_name))
 
-        if not d.get('extends'):
-            if not d.get('executor'):
-                raise ValueError("Missing executor specification in {}".format(name))
-            d['executor']['$location'] = os.path.abspath(definition)
+        if not specs.get('extends'):
+            if not specs.get('executor'):
+                raise ValueError("Missing executor specification in {}".format(actor_name))
+            specs['executor']['$location'] = os.path.abspath(specs_file)
 
-        if d.get('extends') or not all(map(get_actor, d.get('executor', {}).get('actors', ()))):
-            d['$location'] = os.path.abspath(definition)
-            post_resolve[name] = {'definition': d, 'name': name, 'resolved': False}
+        if specs.get('extends') or not all(map(get_actor, specs.get('executor', {}).get('actors', ()))):
+            specs['$location'] = os.path.abspath(specs_file)
+            post_resolve[actor_name] = {'definition': specs, 'name': actor_name, 'resolved': False}
             return
 
-        create_actor(name, d)
+        create_actor(actor_name, specs)
 
 
-def create_actor(name, definition):
-    executor_name = definition.get('executor', {}).get('type')
+def create_actor(name, specs):
+    executor_name = specs.get('executor', {}).get('type')
     executor = get_executor(executor_name)
     if not executor:
         raise LookupError("Unknown executor {}".format(executor_name))
 
-    definition.update({
-        'executor': executor.Definition(definition.get('executor'))})
-    register_actor(name, Definition(name, definition), executor)
+    specs.update({
+        'executor': executor.Definition(specs.get('executor'))})
+
+    register_actor(name, Definition(name, specs), executor)
 
 
-def _apply_extension_resolve(data, base):
-    definition = data['definition']
-    definition['extended'] = base.definition
-    register_actor(data['name'], ExtendsActor.Definition(data['name'], definition), ExtendsActor)
+def _apply_extension_resolve(to_extent_actor, base_actor):
+    specs = to_extent_actor['definition']
+    specs['extended'] = base_actor.definition
+    register_actor(to_extent_actor['name'], ExtendsActor.Definition(to_extent_actor['name'], specs), ExtendsActor)
 
 
-def _try_resolve(current, to_resolve):
-    if current['resolved']:
+def _try_resolve(current_actor, to_resolve_actor):
+    if current_actor['resolved']:
         return
 
-    definition = current['definition']
+    specs = current_actor['definition']
 
-    pending = definition.get('executor', {}).get('actors', ())
-    if definition.get('extends'):
-        pending = (definition['extends'].get('name'),)
+    pending = specs.get('executor', {}).get('actors', ())
+    if specs.get('extends'):
+        pending = (specs['extends'].get('name'),)
 
     for name in pending:
         actor = get_actor(name)
 
-        if not actor and name in to_resolve:
-            if not to_resolve[name]['resolved']:
-                _try_resolve(to_resolve[name], to_resolve)
+        if not actor and name in to_resolve_actor:
+            if not to_resolve_actor[name]['resolved']:
+                _try_resolve(to_resolve_actor[name], to_resolve_actor)
             actor = get_actor(name)
 
         if not actor:
-            raise LookupError("Failed to resolve dependency '{}' for {}".format(name, current['name']))
+            raise LookupError("Failed to resolve dependency '{}' for {}".format(name, current_actor['name']))
 
-    if definition.get('extends'):
-        _apply_extension_resolve(current, get_actor(definition['extends'].get('name')))
+    if specs.get('extends'):
+        _apply_extension_resolve(current_actor, get_actor(specs['extends'].get('name')))
     else:
-        create_actor(current['name'], definition)
+        create_actor(current_actor['name'], specs)
 
-    current['resolved'] = True
+    current_actor['resolved'] = True
 
 
 def load(location, tags=()):
