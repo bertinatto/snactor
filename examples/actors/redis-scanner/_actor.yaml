@@ -1,0 +1,23 @@
+---
+outputs:
+  - name: version
+    type:
+      name: BaseTypeString
+  - name: config_file
+    type:
+      name: BaseTypeString
+  - name: db_file_path
+    type:
+      name: BaseTypeString
+
+description: |
+  Redis scanner actor.
+
+  Outputs:
+    version             - Redis version
+    config_file         - Config file
+    db_file_path        - DB file path
+
+execute:
+  script-file: redis-scanner.py
+  executable: /usr/bin/python
