@@ -1,4 +1,3 @@
-#!/usr/bin/python
 import os
 import re
 import json
@@ -7,8 +6,8 @@ from subprocess import Popen, PIPE
 
 
 def _execute(cmd):
-    p = Popen(shlex.split(cmd), stdout=PIPE, stderr=PIPE)
-    out, _ = p.communicate()
+    proc = Popen(shlex.split(cmd), stdout=PIPE, stderr=PIPE)
+    out, _ = proc.communicate()
     return out
 
 

@@ -1,0 +1,24 @@
+---
+inputs:
+  - name: version
+    type:
+      name: BaseTypeString
+  - name: config_file
+    type:
+      name: BaseTypeString
+  - name: db_file_path
+    type:
+      name: BaseTypeString
+
+description: |
+  Redis generator actor.
+
+  Inputs:
+    version             - Redis version
+    config_file         - Config file
+    db_file_path        - DB file path
+
+execute:
+  script-file: redis-generator.py
+  executable: /usr/bin/python
+
