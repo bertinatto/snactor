@@ -55,6 +55,7 @@ if __name__ == "__main__":
     cntr_id = _get_container_id(cname)
     uri = _join_docker_uri(registry, cname)
 
+    # Create image out of the container and push it to the registry
     _execute('buildah commit --creds {user}:{password} {container_id} {uri}'.format(
         user=registry['user'],
         password=registry['password'],
@@ -62,4 +63,4 @@ if __name__ == "__main__":
         uri=uri,
     ))
 
-    print(json.dumps({'redis': [{'image_uri': uri}]}))
+    print(json.dumps({'image_uri': [uri]}))
