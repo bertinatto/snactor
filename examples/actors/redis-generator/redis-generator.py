@@ -1,63 +1,65 @@
-import os
 import sys
 import json
 import shlex
-import shutil
+
 from subprocess import Popen, PIPE
 
 
 def _execute(cmd):
     proc = Popen(shlex.split(cmd), stdout=PIPE, stderr=PIPE)
-    out, err = proc.communicate()
-    sys.stderr.write(err)
-    return out
+    out, _ = proc.communicate()
+    if proc.returncode != 0:
+        raise Exception("Command failed")
+    return out.strip()
+
+
+def _create_redis_container(redis):
+    cname = _execute('buildah from redis:{0}-alpine'.format(redis['version']))
+    if not cname:
+        raise Exception('Error creating container')
+    return cname
+
+
+def _copy_file_container(cname, src, dst):
+    if cname and src and dst:
+        _execute('buildah copy {0} {1} {2}'.format(cname, src, dst)) 
+
+
+def _get_container_id(cname):
+    cntrs = json.loads(_execute('buildah containers --json'))
+    ids = (x['id'].strip() for x in cntrs if x['containername'] == cname)
+    try:
+        cntr_id = next(ids)
+    except StopIteration:
+        raise Exception('There is more than one container with the same cname')
+    else:
+        return cntr_id.strip()
+
+
+def _join_docker_uri(registry, cname):
+    # TODO: workaround to bypass urljoin's inability to work with docker:// schemas
+    return '/'.join([registry['address'].strip('/'), cname.strip('/')])
 
 
 if __name__ == "__main__":
     inputs = json.load(sys.stdin)
+    redis = inputs['redis'][0]['value']
+    registry = inputs['registry'][0]['value']
 
-    version = inputs['version'][0]['value']
-    config_file = inputs['config_file'][0]['value']
-    db_file_path = inputs['db_file_path'][0]['value']
+    # Create container
+    cname = _create_redis_container(redis)
+    _copy_file_container(cname, redis.get('config_file_path'), '/etc/redis.conf')
+    _copy_file_container(cname, redis.get('db_file_path'), '/data/dump.rdb')
 
-    # with tempfile.NamedTemporaryFile(delete=False) as fd:
-    try:
-        os.mkdir('container')
-        os.mkdir('container/data')
-    except OSError:
-        pass
+    # Gather info to create and push image
+    cntr_id = _get_container_id(cname)
+    uri = _join_docker_uri(registry, cname)
 
-    # copy files
-    shutil.copy(config_file, 'container/data/')
-    shutil.copy(db_file_path, 'container/data/')
+    _execute('buildah commit --creds {user}:{password} {container_id} {uri}'.format(
+        user=registry['user'],
+        password=registry['password'],
+        container_id=cntr_id,
+        uri=uri,
+    ))
 
-    # stop redis
-    # _execute('systemctl stop redis')
-    # sys.stderr.write('\n---> '+config_file+'\n')
-    # sys.exit(1)
-
-    with open('container/Dockerfile', 'w') as fd:
-        fd.write('FROM redis:{0}-alpine\n'.format(version))
-        fd.write('EXPOSE 6379\n')
-        fd.write('COPY data/redis.conf /etc/redis.conf\n'.format(config_file))
-        fd.write('COPY data/dump.rdb /data/dump.rdb\n'.format(db_file_path))
-
-    # create container
-    _execute('docker build container/ -t leapp/redis')
-
-    # start container
-    container_id = _execute('docker run -d -p 6380:6379 leapp/redis')
-
-    # stop and delete
-    # _execute('docker stop {}'.format(container_id))
-    # _execute('docker rm {}'.format(container_id))
-
-    # Start redis
-    # _execute('systemctl start redis')
-
-    # clean up
-    try:
-        os.unlink('container/Dockerfile')
-        os.rmdir('container')
-    except OSError:
-        pass
+    print(json.dumps({'redis': [{'image_uri': uri}]}))

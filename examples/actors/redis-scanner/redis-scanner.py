@@ -37,10 +37,9 @@ def get_config_file():
 
 
 if __name__ == "__main__":
-    raw = {
+    value = {
         'version': get_version(),
-        'config_file': get_config_file(),
+        'config_file_path': get_config_file(),
         'db_file_path': get_db_path(),
     }
-    outputs = {k: [{'value': v}] for k, v in raw.items() if v is not None}
-    print(json.dumps(outputs))
+    print(json.dumps({'redis': [{'value': value}]}))

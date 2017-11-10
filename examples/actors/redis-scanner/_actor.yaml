@@ -1,22 +1,14 @@
 ---
 outputs:
-  - name: version
+  - name: redis
     type:
-      name: BaseTypeString
-  - name: config_file
-    type:
-      name: BaseTypeString
-  - name: db_file_path
-    type:
-      name: BaseTypeString
+      name: RedisInstallation
 
 description: |
   Redis scanner actor.
 
   Outputs:
-    version             - Redis version
-    config_file         - Config file
-    db_file_path        - DB file path
+    redis             - Redis installation data
 
 execute:
   script-file: redis-scanner.py
